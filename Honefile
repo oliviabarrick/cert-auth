@@ -50,6 +50,20 @@ template "default" {
     }
 }
 
+template "docker" {
+    deps = ["build"]
+
+    image = "justinbarrick/kaniko:latest"
+
+    env = {
+        "DOCKER_USER" = "${secrets.DOCKER_USER}",
+        "DOCKER_PASS" = "${secrets.DOCKER_PASS}",
+    }
+
+    inputs = ["Dockerfile", "./cert-auth"]
+    shell = "kaniko --dockerfile=Dockerfile --context=/build/ --destination=${secrets.DOCKER_USER}/cert-auth:$TAG"
+}
+
 job "test" {
     inputs = ["main.go", "go.mod", "go.sum"]
     shell = "go test ./..."
@@ -70,22 +84,26 @@ job "build" {
 }
 
 job "docker" {
-    deps = ["build"]
-
-    image = "justinbarrick/kaniko:latest"
+    template = "docker"
 
     env = {
-        "DOCKER_USER" = "${secrets.DOCKER_USER}",
-        "DOCKER_PASS" = "${secrets.DOCKER_PASS}",
+        "TAG" = "${env.GIT_BRANCH}-${env.GIT_COMMIT_SHORT}"
     }
-
-    inputs = ["Dockerfile", "./cert-auth"]
-
-    shell = "kaniko --dockerfile=Dockerfile --context=/build/ --destination=${secrets.DOCKER_USER}/cert-auth:latest"
 }
 
+job "docker-release" {
+    template = "docker"
+
+    env = {
+        "TAG" = "${env.GIT_TAG}"
+    }
+
+    condition = "GIT_BRANCH='master' and GIT_TAG!=''"
+}
+
+
 job "all" {
-    deps = ["build", "docker"]
+    deps = ["build", "docker", "docker-release"]
     shell = "echo all"
     engine = "local"
 }
