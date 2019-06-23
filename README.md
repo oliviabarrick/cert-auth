@@ -52,4 +52,8 @@ subjects:
   name: username
 ```
 
-Without an RBAC policy set, a user has no permissions.
+Without an RBAC policy set, a user has no permissions by default.
+
+# Related Projects
+
+* [kubehook](https://github.com/planetlabs/kubehook) is a similar design and inspiration for this project, but uses Kubernetes webhook authentication, which requires setting flags on the Kubernetes API server. In some environments (Digital Ocean managed Kubernetes), this is not possible.
