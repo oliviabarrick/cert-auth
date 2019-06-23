@@ -1,16 +1,16 @@
 package main
 
 import (
-	"flag"
-	"io"
-	"net/http"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"flag"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -19,8 +19,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	certificates "k8s.io/client-go/kubernetes/typed/certificates/v1beta1"
+	"k8s.io/client-go/rest"
 	api "k8s.io/client-go/tools/clientcmd/api/v1"
 	csrutils "k8s.io/client-go/util/certificate/csr"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
