@@ -263,7 +263,7 @@ func main() {
 			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Disposition", "attachment; filename=kubeconfig.yaml")
 
-				user := r.Header.Get("X-Auth-User")
+				user := r.Header.Get("X-Forwarded-User")
 
 				if err := issueCertificate(csrAPI, w, user, *server, ca); err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)

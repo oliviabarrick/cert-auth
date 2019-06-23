@@ -28,7 +28,7 @@ cert-auth -bind-port 8080 -api-server https://k8s-api.example.com/
 In this mode, a Kubernetes configuration can be fetched from the server:
 
 ```
-curl http://127.0.0.1:8080/ -H 'X-Auth-User: username' > kubeconfig.yaml
+curl http://127.0.0.1:8080/ -H 'X-Forwarded-User: username' > kubeconfig.yaml
 ```
 
 ## RBAC
