@@ -22,14 +22,42 @@ KUBECONFIG=kubeconfig.yaml kubectl get nodes
 It can also be used as an API:
 
 ```
-cert-auth -bind-port 8080 -api-server https://k8s-api.example.com/
+kubectl create configmap cert-auth --from-literal=endpoint=https://k8s-api.example.com/
+kubectl apply -f ./deploy.yaml
 ```
 
-In this mode, a Kubernetes configuration can be fetched from the server:
+Create an Ingress record for the service and then you can fetch a kubeconfig from it:
 
 ```
-curl http://127.0.0.1:8080/ -H 'X-Forwarded-User: username' > kubeconfig.yaml
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: cert-auth
+  annotations:
+    certmanager.k8s.io/cluster-issuer: letsencrypt
+spec:
+  rules:
+  - host: kube.example.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: cert-auth
+          servicePort: cert-auth
+  tls:
+  - hosts:
+    - kube.example.com
+    secretName: kube-cert
+
 ```
+
+Fetch with curl:
+
+```
+curl https://kube.example.com/ -H 'X-Forwarded-User: username' > kubeconfig.yaml
+```
+
+See [this blog post](https://akomljen.com/protect-kubernetes-external-endpoints-with-oauth2-proxy/) for details on setup with oauth2-proxy.
 
 ## RBAC
 
