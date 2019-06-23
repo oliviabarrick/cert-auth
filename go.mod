@@ -4,6 +4,8 @@ go 1.12
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/dyson/certman v0.2.1
+	github.com/fsnotify/fsnotify v1.4.7 // indirect
 	github.com/go-logr/logr v0.1.0 // indirect
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/gogo/protobuf v1.2.1 // indirect
@@ -18,6 +20,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
+	github.com/pkg/errors v0.8.1 // indirect
 	github.com/spf13/pflag v1.0.3 // indirect
 	go.uber.org/atomic v1.4.0 // indirect
 	go.uber.org/multierr v1.1.0 // indirect

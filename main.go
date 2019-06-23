@@ -3,17 +3,21 @@ package main
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/dyson/certman"
 	"github.com/google/uuid"
 	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -145,11 +149,11 @@ func generateKubernetesConfig(w io.Writer, server string, cert, key, ca []byte) 
 
 func issueCertificate(csrAPI certificates.CertificateSigningRequestInterface, w io.Writer, subject, server string, ca []byte) error {
 	if subject == "" {
-		return fmt.Errorf("subject is empty")
+		return errors.New("subject is empty")
 	}
 
 	if server == "" {
-		return fmt.Errorf("API server is not set")
+		return errors.New("API server is not set")
 	}
 
 	key, csr, err := generateCSR([]string{subject})
@@ -166,11 +170,65 @@ func issueCertificate(csrAPI certificates.CertificateSigningRequestInterface, w 
 	return nil
 }
 
+func listenAndServe(s *http.Server, tlsCert, tlsKey string) error {
+	if tlsCert != "" && tlsKey != "" {
+		cm, err := certman.New(tlsCert, tlsKey)
+		if err != nil {
+			return err
+		}
+
+		if err := cm.Watch(); err != nil {
+			return err
+		}
+
+		s.TLSConfig.GetCertificate = cm.GetCertificate
+
+		return s.ListenAndServeTLS("", "")
+	}
+
+	return s.ListenAndServe()
+}
+
+func makeTLSConfig(clientCACert string, clientCASubject string) (*tls.Config, error) {
+	tlsConfig := &tls.Config{}
+
+	if clientCASubject != "" {
+		tlsConfig.VerifyPeerCertificate = func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+			if len(verifiedChains) == 0 || len(verifiedChains[0]) == 0 {
+				return errors.New("client did not present any TLS certificates")
+			}
+
+			return verifiedChains[0][0].VerifyHostname(clientCASubject)
+		}
+	}
+
+	if clientCACert != "" {
+		clientCA, err := ioutil.ReadFile(clientCACert)
+		if err != nil {
+			return nil, fmt.Errorf("could not load client CA: %s", err)
+		}
+
+		clientCertPool := x509.NewCertPool()
+		clientCertPool.AppendCertsFromPEM(clientCA)
+
+		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+		tlsConfig.ClientCAs = clientCertPool
+
+		tlsConfig.BuildNameToCertificate()
+	}
+
+	return tlsConfig, nil
+}
+
 func main() {
 	port := flag.Int("bind-port", 0, "port to bind to.")
 	addr := flag.String("bind-addr", "", "address to bind to.")
 	server := flag.String("api-server", os.Getenv("API_SERVER"), "API server address.")
 	subject := flag.String("subject", "", "subject to issue in cli mode")
+	clientCACert := flag.String("client-ca-cert", "", "if set, enables mutual TLS and specifies the path to CA file to use when validating client connections")
+	clientCASubject := flag.String("client-ca-subject", "", "if set, requires that the client CA matches the provided subject (requires -client-ca-cert)")
+	tlsCert := flag.String("tls-cert", "", "if set, enables TLS and specifies the path to TLS certificate to use for HTTPS server (requires -tls-key)")
+	tlsKey := flag.String("tls-key", "", "pth to TLS key to use for HTTPS server (requires -tls-cert)")
 
 	flag.Parse()
 
@@ -194,18 +252,27 @@ func main() {
 			log.Fatal(err)
 		}
 	} else {
-		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Disposition", "attachment; filename=kubeconfig.yaml")
+		tlsConfig, err := makeTLSConfig(*clientCACert, *clientCASubject)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-			user := r.Header.Get("X-Auth-User")
+		s := &http.Server{
+			Addr:      fmt.Sprintf("%s:%d", *addr, *port),
+			TLSConfig: tlsConfig,
+			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Disposition", "attachment; filename=kubeconfig.yaml")
 
-			if err := issueCertificate(csrAPI, w, user, *server, ca); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-			}
+				user := r.Header.Get("X-Auth-User")
 
-			log.Println("Issued certificate for", user)
-		})
+				if err := issueCertificate(csrAPI, w, user, *server, ca); err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
 
-		log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%d", *addr, *port), nil))
+				log.Println("Issued certificate for", user)
+			}),
+		}
+
+		log.Fatal(listenAndServe(s, *tlsCert, *tlsKey))
 	}
 }
