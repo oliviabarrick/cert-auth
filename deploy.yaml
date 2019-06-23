@@ -47,8 +47,8 @@ spec:
     spec:
       serviceAccountName: cert-auth
       containers:
-      - image: justinbarrick/cert-auth
-        imagePullPolicy: Always
+      - image: justinbarrick/cert-auth:v0.1.0
+        imagePullPolicy: IfNotPresent
         name: cert-auth
         env:
         - name: API_SERVER
