@@ -61,6 +61,11 @@ job "build" {
     inputs = ["main.go", "go.mod", "go.sum"]
     outputs = ["cert-auth"]
 
+    env = {
+        "CGO_ENABLED" = "0"
+        "GOOS" = "linux"
+    }
+
     shell = "go build -ldflags '-w -extldflags -static' -o ./cert-auth ./"
 }
 
