@@ -2,6 +2,8 @@ cert-auth is a service designed to make it easy to issue signed client certifica
 
 It is recommended to use cert-auth with [oauth2-proxy](https://github.com/pusher/oauth2_proxy) for authentication and to use mutual TLS to authenticate oauth2-proxy and cert-auth.
 
+As the Kubernetes API does not allow specifying the expiration of certificates, all certificates are valid for one year - use RBAC to revoke a user's access.
+
 # Usage
 
 There are two ways to use cert-auth.
@@ -49,3 +51,5 @@ subjects:
   kind: User
   name: username
 ```
+
+Without an RBAC policy set, a user has no permissions.
