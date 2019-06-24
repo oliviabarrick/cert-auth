@@ -35,9 +35,9 @@ cache {
     }
 }
 
-#repository {
-#    token = "${secrets.GITHUB_TOKEN}"
-#}
+repository {
+    token = "${secrets.GITHUB_TOKEN}"
+}
 
 template "default" {
     image = "golang:1.12.5"
