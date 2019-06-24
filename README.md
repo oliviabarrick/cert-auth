@@ -57,7 +57,7 @@ Fetch with curl:
 curl https://kube.example.com/ -H 'X-Forwarded-User: username' > kubeconfig.yaml
 ```
 
-See [this blog post](https://akomljen.com/protect-kubernetes-external-endpoints-with-oauth2-proxy/) for details on setup with oauth2-proxy.
+See [this documentation](https://github.com/kubernetes/ingress-nginx/tree/master/docs/examples/auth/oauth-external-auth) for details on setup with oauth2-proxy.
 
 ## RBAC
 
